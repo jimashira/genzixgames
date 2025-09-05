@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Genzix Infinite Quiz</title>
+<style>
+body {
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  margin:0;
+  padding:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:
+    linear-gradient(rgba(255,182,193,0.4), rgba(255,105,180,0.4)),
+    url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVPbFmLKWwahIOHIT2liS7UpMIg5zA-vCIRg&s") no-repeat center center fixed;
+  background-size: cover;
+  color:#fff;
+}
+
+h1 {
+  text-align:center;
+  font-size:2.5em;
+  color:#fff0f6;
+  text-shadow:2px 2px #ff5bbd;
+  margin-bottom:20px;
+}
+
+#game {
+  background: rgba(255,255,255,0.85);
+  border-radius:25px;
+  padding:30px;
+  max-width:500px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.3);
+  color:#ff4fa1;
+  text-align:center;
+}
+
+p {
+  font-size:1.3em;
+  font-weight:bold;
+  margin-bottom:15px;
+}
+
+input {
+  padding:12px;
+  width:250px;
+  font-size:16px;
+  border-radius:25px;
+  border:2px solid #ff8bd4;
+  outline:none;
+  text-align:center;
+}
+
+button {
+  padding:12px 25px;
+  margin:10px;
+  font-size:16px;
+  cursor:pointer;
+  border:none;
+  border-radius:25px;
+  background: linear-gradient(45deg,#ff8bd4,#ff5bbd);
+  color:white;
+  font-weight:bold;
+  transition:0.3s;
+}
+
+button:hover {
+  background: linear-gradient(45deg,#ff5bbd,#ff8bd4);
+  transform:scale(1.05);
+}
+
+#timer {
+  font-size:18px;
+  margin:10px 0;
+  color:red;
+  font-weight:bold;
+}
+
+#result {
+  font-size:20px;
+  margin-top:10px;
+  font-weight:bold;
+}
+
+#flashcard {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffb6c1;
+  color: #fff;
+  padding: 30px 50px;
+  border-radius: 25px;
+  font-size: 2em;
+  text-align: center;
+  display: none;
+  z-index: 1000;
+}
+
+#popup {
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.6);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  opacity:0;
+  pointer-events:none;
+  transition:0.3s;
+  z-index:999;
+}
+
+#popup.show {
+  opacity:1;
+  pointer-events:auto;
+}
+
+#popupContent {
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  max-width: 300px;
+  animation: popin 0.3s ease;
+}
+
+#popupContent img {
+  width: 180px;
+  border-radius: 15px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+}
+
+@keyframes popin {
+  0% { transform: scale(0.7); opacity:0; }
+  100% { transform: scale(1); opacity:1; }
+}
+</style>
+</head>
+<body>
+<div>
+<h1>🎶 Genzix Infinite Quiz 🎶</h1>
+<div id="game">
+  <p id="lyricPrompt"></p>
+  <input type="text" id="answer" placeholder="Type your answer...">
+  <br>
+  <button onclick="checkAnswer()">Submit</button>
+  <div id="timer"></div>
+  <div id="result"></div>
+</div>
+</div>
+
+<div id="flashcard"></div>
+
+<!-- Popup -->
+<div id="popup">
+  <div id="popupContent">
+    <img id="popupImg" src="" alt="Result">
+    <br>
+    <button onclick="closePopupAndNext()">Next</button>
+  </div>
+</div>
+
+<script>
+// Questions with lyrics and trivia
+const allQuestions = {
+  easy:[
+    {q:"Di na nga nag ____ kung ito ay isang pagibig", a:["tataka"]},
+    {q:"Like dub dub oh dub ____", a:["dub"]},
+    {q:"Unang kita pa lang kuhang ____ mo na", a:["kuha"]},
+    {q:"Your face captivates me like a pretty ____", a:["melody"]},
+    {q:"La, wala pang 5 ____ nang nahulog sayo", a:["seconds"]},
+    {q:"Oops! So ____!", a:["clumsy"]},
+    {q:"Handa akong ____ ang iyong sakdal", a:["harapin"]},
+    {q:"Kung iniisip bakit ka laging ____", a:["masaya"]},
+    {q:"Pssst. napalingon ka ____?", a:["yata"]},
+    {q:"Hmm. Don't get ____", a:["me wrong"]},
+    // Easy trivia
+    {q:"sino pinaka corny?", a:["leo","Leo"]},
+    {q:"pinakajudgemental sa genzix?", a:["jayu","Jayu"]},
+    {q:"name ng teddy bear ni kiyo?", a:["sky","Sky"]},
+    {q:"Sino yung admin ng genzix na 1 month lang loyal kay leo?", a:["angel","Angel"]},
+    {q:"who's most likely to be mang huhula?", a:["leo","Leo"]},
+    {q:"who in genzix member na fav line nya is 'hindi talagaa'?", a:["jayu","Jayu"]}
+  ],
+  medium:[
+    {q:"Medium lyric: 'Wala, wala pang 5 ____ nang nahulog sayo'", a:["seconds"]},
+    {q:"Medium lyric: 'Pulutin mo ang ____ ko, malinis ang hangarin ko'", a:["puso"]},
+    {q:"Medium lyric: 'hindi ko ____'", a:["sinasadya"]},
+    {q:"Medium lyric: 'minsan talagang ____'", a:["lampa"]},
+    {q:"Medium lyric: 'nahulog ko ang ____ ko at sa harapan mo pa'", a:["puso"]},
+    {q:"Medium lyric: 'di ko na ____ kung anong gagawin'", a:["malaman"]},
+    {q:"Medium lyric: 'segundo lang ang ____'", a:["lumipas"]},
+    {q:"Medium lyric: 'mahikang ____ kupas'", a:["wala"]},
+    {q:"Medium lyric: 'I dropped my ____ for you'", a:["heart"]},
+    {q:"Medium lyric: 'coz you're the one I've ____ for'", a:["fallen"]},
+    {q:"Medium lyric: 'lupa dagat man handa kong ____'", a:["tawirin"]},
+    {q:"Medium lyric: 'Your face captivates me like a pretty ____'", a:["melody"]},
+    {q:"Medium lyric: 'It feels easy when I'm with you like I sing ____'", a:["Do Re Mi"]},
+    {q:"Medium lyric: 'Sa puso't utak ko di na ____'", a:["matanggal"]},
+    // Medium trivia
+    {q:"Sino ang my 40+ perfume?", a:["jayu","Jayu"]},
+    {q:"Sino laging late sa genzix?", a:["leo","Leo"]}
+  ],
+  hard:[
+    {q:"Hard lyric: 'Mula nang masilayan ka di na ____ sa aking isip'", a:["mawala"]},
+    {q:"Hard lyric: 'Di na nga ____ kung ito ay isang pagibig'", a:["nagtataka"]},
+    {q:"Hard lyric: 'Kumakabog kabog itong aking ____'", a:["dibdib"]},
+    {q:"Hard lyric: 'Like dub dub oh dub ____'", a:["dub"]},
+    {q:"Hard lyric: 'Unang kita pa lang kuhang ____ mo na'", a:["kuha"]},
+    {q:"Hard lyric: 'Gustong ____'", a:["makatabi"]},
+    {q:"Hard lyric: 'Wooah oaaah (You're in my ____ like)'", a:["mind"]},
+    {q:"Hard lyric: 'Sa puso't utak ko di na ____'", a:["matanggal"]},
+    {q:"Hard lyric: 'My heartbeat is ____'", a:["restless"]},
+    {q:"Hard lyric: 'Di mapapagod na ____'", a:["pagmasdan"]},
+    {q:"Hard lyric: 'Hanggang ____'", a:["mapasakin"]},
+    {q:"Hard lyric: 'Una't huling nasa ____'", a:["isip"]},
+    {q:"Hard lyric: 'You're the only one (in my ____)'", a:["playlist"]},
+    {q:"Hard lyric: 'Who I listen to again and ____'", a:["again"]},
+    {q:"Hard lyric: 'Pag nariyan ka, puno ng ____'", a:["kaba"]},
+    {q:"Hard lyric: 'Kumakawala ang ____'", a:["puso't kaluluwa"]},
+    {q:"Hard lyric: 'Di pipigilin, akına ____'", a:["damdamin"]},
+    {q:"Hard lyric: 'Your face captivates me like a pretty ____'", a:["melody"]},
+    {q:"Hard lyric: 'It feels easy when I'm with you like I sing ____'", a:["Do Re Mi"]},
+    {q:"Hard lyric: 'Sa puso't utak ko di na ____'", a:["matanggal"]},
+    // Hard trivia
+    {q:"Sino nangungupit kay sir nadz?", a:["cantonz","kiyo","jayu","kupitz duo"]},
+    {q:"sino nakaubos ng tortang talong?", a:["jayu","Jayu"]},
+    {q:"Revi: something big na...", a:["vida drink","Vida drink"]},
+    {q:"Mahal ni Leo ang soulz pero mas mahal nya si?", a:["jayu","Jayu"]},
+    {q:"sino ang laging pinapagalitan ni sir nadz?", a:["aki","Aki"]},
+    {q:"laging lutang?", a:["leo","Leo"]},
+    {q:"Who said the line 'suntukin ko kayo'?", a:["kris","Kris"]},
+    {q:"Bias ng lahat na soulz?", a:["angel","Angel"]},
+    {q:"Sino si spiderman?", a:["leo","Leo"]},
+    {q:"sino ang nakukupitan lagi?", a:["sir nadz","nadz","sir"]}
+  ]
+};
+
+const goodPhotos = [
+  "https://pbs.twimg.com/media/G0AVV1rbkAInkHb?format=jpg&name=small",
+  "https://pbs.twimg.com/media/GzsCPaQbcAApS_w?format=jpg&name=large",
+  "https://pbs.twimg.com/media/GeW2F5AbkAAAuQd?format=jpg&name=large"
+];
+
+const memePhotos = [
+  "https://pbs.twimg.com/media/G0FydTqb0AASzxN?format=png&name=small",
+  "https://pbs.twimg.com/media/G0FyivpbgAA_C5m?format=png&name=small",
+  "https://pbs.twimg.com/media/G0FynrEbIAE6dIr?format=png&name=360x360"
+];
+
+let currentQuestion, timer;
+let usedQuestions = {easy:[], medium:[], hard:[]};
+let missedQuestions = [];
+let levels = ["easy","medium","hard"];
+let levelIndex = 0;
+let difficulty = levels[levelIndex];
+
+function getTimeLimit(){
+  if(difficulty==="easy") return 10;
+  if(difficulty==="medium") return 5;
+  return 3;
+}
+
+function startTimer(){
+  clearInterval(timer);
+  let timeLeft = getTimeLimit();
+  document.getElementById("timer").textContent = "⏳ " + timeLeft + "s left";
+  timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").textContent = "⏳ " + timeLeft + "s left";
+    if(timeLeft<=0){
+      clearInterval(timer);
+      showResult(false,true);
+    }
+  },1000);
+}
+
+function nextQuestion(){
+  document.getElementById("result").textContent="";
+  document.getElementById("answer").value="";
+
+  let available = allQuestions[difficulty].filter((q,i) => !usedQuestions[difficulty].includes(i));
+  if(available.length===0){
+    levelIndex++;
+    if(levelIndex>=levels.length){
+      document.getElementById("lyricPrompt").textContent="🎉 Game Finished! 🎉";
+      document.getElementById("timer").textContent="";
+      return;
+    } else {
+      difficulty = levels[levelIndex];
+      showFlashcard("<"+capitalizeFirstLetter(difficulty)+">");
+      setTimeout(nextQuestion,1500);
+      return;
+    }
+  }
+
+  let randIndex = Math.floor(Math.random()*available.length);
+  let qIndex = allQuestions[difficulty].indexOf(available[randIndex]);
+  currentQuestion = allQuestions[difficulty][qIndex];
+  usedQuestions[difficulty].push(qIndex);
+
+  document.getElementById("lyricPrompt").textContent=currentQuestion.q;
+  startTimer();
+}
+
+function checkAnswer(){
+  clearInterval(timer);
+  let userAns = document.getElementById("answer").value.trim().toLowerCase();
+  let correctAns = currentQuestion.a.map(a=>a.toLowerCase());
+  showResult(correctAns.includes(userAns),false);
+}
+
+function showResult(correct,timeout){
+  let imgSrc, msg;
+  if(correct){
+    msg="💖 Correct!";
+    imgSrc=goodPhotos[Math.floor(Math.random()*goodPhotos.length)];
+  } else {
+    msg=timeout?"⏰ Time’s up! Correct: "+currentQuestion.a[0]:"❌ Wrong! Correct: "+currentQuestion.a[0];
+    imgSrc=memePhotos[Math.floor(Math.random()*memePhotos.length)];
+    missedQuestions.push(currentQuestion);
+  }
+  document.getElementById("result").textContent=msg;
+  document.getElementById("popupImg").src=imgSrc;
+  document.getElementById("popup").classList.add("show");
+}
+
+function closePopupAndNext(){
+  document.getElementById("popup").classList.remove("show");
+  nextQuestion();
+}
+
+function showFlashcard(text){
+  let fc = document.getElementById("flashcard");
+  fc.textContent=text;
+  fc.style.display="block";
+  setTimeout(()=>{fc.style.display="none";},1500);
+}
+
+function capitalizeFirstLetter(str){
+  return str.charAt(0).toUpperCase()+str.slice(1);
+}
+
+// start game
+nextQuestion();
+</script>
+</body>
+</html>
